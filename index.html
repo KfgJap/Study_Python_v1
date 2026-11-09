@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Питонарий — учим Python играючи</title>
+
+  <!-- ============================================================
+       1. ПОДКЛЮЧЕНИЯ (CDN)
+       ============================================================ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ============================================================
+       2. КОНФИГ TAILWIND: пастельная палитра, шрифты, тени
+       ============================================================ -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', 'system-ui', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
+          },
+          colors: {
+            cream:    { DEFAULT: '#FBF7F1', 100: '#F5EFE6', 200: '#EBE2D4' },
+            ink:      { DEFAULT: '#3B3750', soft: '#6B6785', mute: '#9A96AF' },
+            mint:     { 50: '#F0FAF5', 100: '#DDF4E8', 200: '#BDE8D2', 300: '#94D8B6', 400: '#6CC79B', 500: '#4DB085', 600: '#3A9470', 700: '#2D7558' },
+            lavender: { 50: '#F6F3FD', 100: '#EBE5FA', 200: '#D9CFF5', 300: '#C2B2EE', 400: '#A892E3', 500: '#8D74D4', 600: '#7658BC', 700: '#5E4599' },
+            peach:    { 50: '#FFF5EE', 100: '#FFE8D9', 200: '#FFD3B8', 300: '#FFB992', 400: '#FF9F6E', 500: '#F0824D', 600: '#D3693A', 700: '#A9512B' },
+            butter:   { 50: '#FFFAEA', 100: '#FFF2C7', 200: '#FFE697', 300: '#FFD763', 400: '#F5C33D', 500: '#D9A621', 600: '#B1861A', 700: '#876614' },
+            sky:      { 50: '#F0F8FE', 100: '#DDEEFB', 200: '#BDDFF7', 300: '#93CBF0', 400: '#6BB5E6', 500: '#4A9AD2', 600: '#3A7DB0', 700: '#2E6089' },
+            blush:    { 50: '#FFF1F2', 100: '#FFE0E3', 200: '#FFC7CE', 500: '#E5617A', 700: '#B03A52' }
+          },
+          boxShadow: {
+            soft: '0 8px 30px -12px rgba(94, 69, 153, 0.18)',
+            lift: '0 16px 40px -14px rgba(94, 69, 153, 0.28)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body { font-family: 'Manrope', system-ui, sans-serif; background: #FBF7F1; color: #3B3750; }
+    /* Плавное появление экранов */
+    .screen-enter { animation: fadeUp .45s ease both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .floaty { animation: floaty 5s ease-in-out infinite; }
+    @keyframes pop { 0% { transform: scale(.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .pop { animation: pop .3s ease both; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+    .shake { animation: shake .35s ease; }
+
+    /* Инлайн-код в теории */
+    .ic { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9em; background: #EBE5FA; color: #5E4599; padding: 2px 7px; border-radius: 8px; }
+
+    /* Подсветка кода Prism — своя мягкая тема */
+    pre[class*="language-"], code[class*="language-"] { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; line-height: 1.65; color: #3B3750; text-shadow: none; background: none; white-space: pre; }
+    .token.comment { color: #9A96AF; font-style: italic; }
+    .token.keyword { color: #7658BC; font-weight: 700; }
+    .token.string, .token.f-string { color: #2D7558; }
+    .token.number, .token.boolean { color: #D3693A; }
+    .token.function, .token.builtin { color: #3A7DB0; }
+    .token.operator, .token.punctuation { color: #6B6785; }
+
+    /* Состояния вариантов ответа */
+    .opt-correct { background: #DDF4E8 !important; border-color: #6CC79B !important; color: #2D7558; }
+    .opt-wrong   { background: #FFE0E3 !important; border-color: #E5617A !important; color: #B03A52; }
+
+    textarea.code-area { tab-size: 4; }
+    textarea.code-area:focus { outline: none; border-color: #A892E3; box-shadow: 0 0 0 4px #EBE5FA; }
+
+    /* Спиннер */
+    .spinner { width: 14px; height: 14px; border-radius: 999px; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+
+<body class="min-h-screen antialiased">
+
+  <!-- ============================================================
+       3. РАЗМЕТКА: шапка, экраны, модалка, тост
+       ============================================================ -->
+  <header class="sticky top-0 z-30 bg-cream/80 backdrop-blur border-b border-cream-200">
+    <div class="max-w-5xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
+      <button id="logo" class="flex items-center gap-2 font-extrabold text-lg hover:opacity-80 transition">
+        <span class="w-9 h-9 rounded-2xl bg-mint-200 grid place-items-center text-xl">🐍</span>
+        <span>Питонарий</span>
+      </button>
+      <div class="flex items-center gap-3">
+        <div id="header-progress" class="hidden sm:flex items-center gap-2 text-sm font-semibold text-ink-soft"></div>
+        <div id="py-status" class="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full bg-butter-100 text-butter-700">
+          <span class="spinner"></span><span>Python загружается…</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-5 pb-24">
+
+    <!-- ЭКРАН: ГЛАВНАЯ -->
+    <div id="screen-home" class="screen-enter">
+      <section class="relative mt-8 sm:mt-12 rounded-3xl bg-gradient-to-br from-lavender-100 via-peach-50 to-mint-100 p-7 sm:p-12 overflow-hidden shadow-soft">
+        <div class="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-peach-200/60 blur-2xl"></div>
+        <div class="absolute -bottom-12 -left-8 w-52 h-52 rounded-full bg-mint-200/70 blur-2xl"></div>
+        <div class="relative grid md:grid-cols-5 gap-8 items-center">
+          <div class="md:col-span-3">
+            <span class="inline-block text-xs font-bold tracking-wide uppercase bg-white/70 text-lavender-700 px-3 py-1.5 rounded-full">Интерактивный курс · бесплатно</span>
+            <h1 class="mt-4 text-4xl sm:text-5xl font-extrabold leading-tight">Учим Python <br class="hidden sm:block" />спокойно и с удовольствием</h1>
+            <p class="mt-4 text-ink-soft text-lg max-w-xl">Короткая теория, живые примеры и задания, которые выполняются прямо в браузере. Пять уровней — от первого <span class="ic">print()</span> до собственных функций.</p>
+            <div class="mt-7 flex flex-wrap items-center gap-4">
+              <button id="btn-start" class="px-7 py-3.5 rounded-2xl bg-lavender-600 hover:bg-lavender-700 text-white font-bold shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all">Начать →</button>
+              <div id="hero-progress" class="text-sm font-semibold text-ink-soft"></div>
+            </div>
+          </div>
+          <div class="md:col-span-2 hidden md:block">
+            <div class="floaty bg-white rounded-3xl shadow-lift p-5 rotate-2">
+              <div class="flex gap-1.5 mb-3"><span class="w-3 h-3 rounded-full bg-blush-200"></span><span class="w-3 h-3 rounded-full bg-butter-300"></span><span class="w-3 h-3 rounded-full bg-mint-300"></span></div>
+              <pre class="font-mono text-sm leading-relaxed text-ink"><span class="text-lavender-600 font-bold">for</span> i <span class="text-lavender-600 font-bold">in</span> <span class="text-sky-600">range</span>(<span class="text-peach-600">3</span>):
+    <span class="text-sky-600">print</span>(<span class="text-mint-700">"Привет!"</span>)</pre>
+              <div class="mt-3 rounded-2xl bg-mint-50 text-mint-700 font-mono text-sm px-3 py-2">Привет!<br>Привет!<br>Привет! ✨</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="levels-section" class="mt-14">
+        <h2 class="text-2xl font-extrabold">Уровни</h2>
+        <p class="text-ink-soft mt-1">Каждый следующий уровень открывается после прохождения предыдущего.</p>
+        <div id="levels-grid" class="mt-6 grid sm:grid-cols-2 gap-5"></div>
+        <div class="mt-10 text-center">
+          <button id="btn-reset" class="text-sm font-semibold text-ink-mute hover:text-blush-500 transition">Сбросить прогресс</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ЭКРАН: УРОВЕНЬ -->
+    <div id="screen-level" class="hidden">
+      <div id="level-root"></div>
+    </div>
+  </main>
+
+  <!-- МОДАЛКА УСПЕХА -->
+  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center p-5 bg-ink/30 backdrop-blur-sm">
+    <div class="pop bg-white rounded-3xl shadow-lift max-w-md w-full p-8 text-center">
+      <div id="modal-emoji" class="text-6xl">🎉</div>
+      <h3 id="modal-title" class="mt-4 text-2xl font-extrabold"></h3>
+      <p id="modal-text" class="mt-2 text-ink-soft"></p>
+      <div class="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+        <button id="modal-next" class="px-6 py-3 rounded-2xl bg-mint-600 hover:bg-mint-700 text-white font-bold transition hover:-translate-y-0.5 shadow-soft">Следующий уровень →</button>
+        <button id="modal-home" class="px-6 py-3 rounded-2xl bg-cream-100 hover:bg-cream-200 text-ink font-bold transition">На главную</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ТОСТ -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-ink text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-lift"></div>
+
+  <!-- Скрипты-библиотеки -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+  <script>
+  /* ==============================================================
+     4. ДАННЫЕ: уровни, теория и задания
+     --------------------------------------------------------------
+     task.type === 'choice' → question, code?, options[], answer (индекс), explain
+     task.type === 'code'   → question, starter, expectedOutput, hint?, appendCode?
+       appendCode — скрытый код, который дописывается к решению
+       (нужен, чтобы проверять функции, написанные учеником).
+     ============================================================== */
+  const levels = [
+    {
+      id: 1, emoji: '👋', theme: 'mint',
+      title: 'Введение',
+      description: 'Что такое Python и как заставить его говорить: команда print().',
+      theory: [
+        'Python — один из самых популярных языков программирования. Он читается почти как обычный английский, поэтому идеально подходит для первого знакомства. На нём пишут сайты, анализируют данные, делают игры и обучают нейросети.',
+        'Первая команда, которую знает каждый программист, — <span class="ic">print()</span>. Она выводит на экран всё, что находится в скобках. Текст (строки) берут в кавычки, а числа и выражения — без кавычек: Python сам посчитает результат.'
+      ],
+      examples: [
+        { title: 'Привет, мир!', code: 'print("Привет, мир!")\nprint("Меня зовут Python")' },
+        { title: 'Числа и выражения', code: 'print(2 + 3)        # посчитает: 5\nprint("2 + 3")      # просто текст\nprint("Сумма:", 2 + 3)  # несколько значений через запятую' }
+      ],
+      tasks: [
+        {
+          id: 't1', type: 'choice',
+          question: 'Какая функция в Python выводит текст на экран?',
+          options: ['echo()', 'print()', 'write()', 'show()'],
+          answer: 1,
+          explain: 'Именно print() выводит значения на экран. Остальные названия встречаются в других языках, но не в Python.'
+        },
+        {
+          id: 't2', type: 'code',
+          question: 'Выведите на экран фразу: <b>Привет, Python!</b>',
+          starter: '# Напишите свой код ниже\n',
+          expectedOutput: 'Привет, Python!',
+          hint: 'Текст нужно взять в кавычки: print("...")'
+        },
+        {
+          id: 't3', type: 'code',
+          question: 'Выведите одной командой <b>Сумма: 42</b>, где 42 — результат выражения <span class="ic">15 + 27</span> (посчитайте его в коде, а не вручную).',
+          starter: '# Подсказка: print("Текст", выражение)\n',
+          expectedOutput: 'Сумма: 42',
+          hint: 'print("Сумма:", 15 + 27) — запятая сама поставит пробел между значениями.'
+        }
+      ]
+    },
+    {
+      id: 2, emoji: '📦', theme: 'lavender',
+      title: 'Переменные и типы данных',
+      description: 'Храним значения под именами и узнаём, чем число отличается от текста.',
+      theory: [
+        'Переменная — это коробочка с именем, в которую можно положить значение. Создаётся она знаком <span class="ic">=</span>: слева имя, справа значение. Имя может содержать буквы, цифры и подчёркивание, но не начинается с цифры.',
+        'У каждого значения есть тип: <span class="ic">int</span> — целое число, <span class="ic">float</span> — дробное, <span class="ic">str</span> — строка, <span class="ic">bool</span> — логическое (True или False). Узнать тип можно функцией <span class="ic">type()</span>. А чтобы красиво вставить переменные в текст, используют f-строки: перед кавычкой ставят букву f, а переменные пишут в фигурных скобках.'
+      ],
+      examples: [
+        { title: 'Переменные и типы', code: 'name = "Аня"\nage = 12\nheight = 1.52\nis_student = True\n\nprint(name, age, height, is_student)\nprint(type(age))\nprint(type(height))' },
+        { title: 'f-строки', code: 'city = "Казань"\ntemp = 18\nprint(f"В городе {city} сейчас {temp} градусов")' }
+      ],
+      tasks: [
+        {
+          id: 't1', type: 'choice',
+          question: 'Какой тип данных имеет значение <span class="ic">3.14</span>?',
+          options: ['int', 'str', 'float', 'bool'],
+          answer: 2,
+          explain: '3.14 — число с дробной частью, а такие числа в Python называются float. Тип int — только целые числа.'
+        },
+        {
+          id: 't2', type: 'code',
+          question: 'В магазине товар стоит <span class="ic">price</span> рублей, куплено <span class="ic">count</span> штук. Выведите общую стоимость (только число).',
+          starter: 'price = 120\ncount = 3\n\n# Выведите общую стоимость\n',
+          expectedOutput: '360',
+          hint: 'Умножайте переменные: print(price * count)'
+        },
+        {
+          id: 't3', type: 'code',
+          question: 'С помощью f-строки выведите: <b>Меня зовут Аня, мне 12 лет</b>. Используйте переменные <span class="ic">name</span> и <span class="ic">age</span>.',
+          starter: 'name = "Аня"\nage = 12\n\n# Напишите f-строку\n',
+          expectedOutput: 'Меня зовут Аня, мне 12 лет',
+          hint: 'print(f"Меня зовут {name}, мне {age} лет")'
+        }
+      ]
+    },
+    {
+      id: 3, emoji: '🔀', theme: 'peach',
+      title: 'Условия (if / else)',
+      description: 'Учим программу принимать решения в зависимости от ситуации.',
+      theory: [
+        'Условный оператор <span class="ic">if</span> выполняет блок кода только тогда, когда условие истинно. После условия ставится двоеточие, а код внутри блока сдвигается на 4 пробела — в Python отступы это часть синтаксиса. Для сравнения есть операторы <span class="ic">==</span>, <span class="ic">!=</span>, <span class="ic">&lt;</span>, <span class="ic">&gt;</span>, <span class="ic">&lt;=</span>, <span class="ic">&gt;=</span>.',
+        'Если условие ложно, сработает ветка <span class="ic">else</span>. Когда вариантов больше двух, добавляют <span class="ic">elif</span> (сокращение от else if). Условия можно объединять словами <span class="ic">and</span>, <span class="ic">or</span> и <span class="ic">not</span>. Важно: один знак <span class="ic">=</span> — это присваивание, а два <span class="ic">==</span> — проверка на равенство.'
+      ],
+      examples: [
+        { title: 'if / else', code: 'age = 16\n\nif age >= 18:\n    print("Взрослый")\nelse:\n    print("Ещё не 18")' },
+        { title: 'Несколько веток: elif', code: 'temp = 5\n\nif temp > 25:\n    print("Жарко")\nelif temp > 10:\n    print("Тепло")\nelse:\n    print("Прохладно")' }
+      ],
+      tasks: [
+        {
+          id: 't1', type: 'choice',
+          question: 'Какой оператор проверяет, что два значения <b>равны</b>?',
+          options: ['=', '==', '=>', '!='],
+          answer: 1,
+          explain: '== сравнивает значения и возвращает True или False. Одиночный = — это присваивание, а != проверяет неравенство.'
+        },
+        {
+          id: 't2', type: 'code',
+          question: 'Если <span class="ic">age</span> меньше 18, выведите <b>Доступ запрещён</b>, иначе — <b>Добро пожаловать</b>.',
+          starter: 'age = 17\n\n# Напишите условие\n',
+          expectedOutput: 'Доступ запрещён',
+          hint: 'if age < 18:\n    print(...)\nelse:\n    print(...)   — не забудьте двоеточия и отступы.'
+        },
+        {
+          id: 't3', type: 'code',
+          question: 'По баллам <span class="ic">score</span> выведите оценку: от 90 — <b>Отлично</b>, от 70 — <b>Хорошо</b>, иначе — <b>Нужно подтянуть</b>.',
+          starter: 'score = 85\n\n# Используйте if / elif / else\n',
+          expectedOutput: 'Хорошо',
+          hint: 'Сначала проверьте score >= 90, затем elif score >= 70, затем else.'
+        }
+      ]
+    },
+    {
+      id: 4, emoji: '🔁', theme: 'sky',
+      title: 'Циклы (for / while)',
+      description: 'Повторяем действия без копирования кода: for, while и range().',
+      theory: [
+        'Цикл <span class="ic">for</span> перебирает значения по очереди. Чаще всего его используют вместе с <span class="ic">range()</span>: <span class="ic">range(5)</span> даёт числа 0, 1, 2, 3, 4, а <span class="ic">range(1, 6)</span> — числа от 1 до 5. Конечное число в range <b>не включается</b>.',
+        'Цикл <span class="ic">while</span> работает, пока его условие истинно. Будьте внимательны: внутри цикла нужно менять переменную, иначе условие никогда не станет ложным и цикл будет бесконечным. Как и в if, тело цикла сдвигается на 4 пробела.'
+      ],
+      examples: [
+        { title: 'for и range', code: 'for i in range(1, 4):\n    print("Шаг", i)' },
+        { title: 'while: накапливаем сумму', code: 'total = 0\nn = 1\n\nwhile n <= 5:\n    total = total + n\n    n = n + 1\n\nprint("Сумма от 1 до 5:", total)' }
+      ],
+      tasks: [
+        {
+          id: 't1', type: 'choice',
+          question: 'Что выведет этот код?',
+          code: 'for i in range(2, 5):\n    print(i)',
+          options: ['2 3 4 5 (каждое с новой строки)', '2 3 4 (каждое с новой строки)', '3 4 5 (каждое с новой строки)', 'Только число 5'],
+          answer: 1,
+          explain: 'range(2, 5) начинается с 2 и заканчивается перед 5, поэтому получаются числа 2, 3 и 4.'
+        },
+        {
+          id: 't2', type: 'code',
+          question: 'С помощью цикла <span class="ic">for</span> выведите квадраты чисел от 1 до 5 — каждый на новой строке (1, 4, 9, 16, 25).',
+          starter: '# Квадрат числа i — это i * i\n',
+          expectedOutput: '1\n4\n9\n16\n25',
+          hint: 'for i in range(1, 6):\n    print(i * i)'
+        },
+        {
+          id: 't3', type: 'code',
+          question: 'Сделайте обратный отсчёт с помощью <span class="ic">while</span>: выведите 3, 2, 1, а потом слово <b>Старт!</b>',
+          starter: 'n = 3\n\n# Пока n больше 0 — печатаем и уменьшаем\n',
+          expectedOutput: '3\n2\n1\nСтарт!',
+          hint: 'while n > 0:\n    print(n)\n    n = n - 1\nprint("Старт!")  # без отступа — после цикла'
+        }
+      ]
+    },
+    {
+      id: 5, emoji: '🧩', theme: 'butter',
+      title: 'Функции',
+      description: 'Собираем код в удобные блоки, которые можно вызывать снова и снова.',
+      theory: [
+        'Функция — это именованный кусочек кода, который можно вызывать многократно. Она создаётся словом <span class="ic">def</span>, затем идут имя, скобки с параметрами и двоеточие. Параметры — это «входные данные» функции, а при вызове вы передаёте в них конкретные значения (аргументы).',
+        'Чтобы функция вернула результат, используют <span class="ic">return</span>. Важное отличие: <span class="ic">print()</span> только показывает значение на экране, а <span class="ic">return</span> отдаёт его обратно туда, откуда функцию вызвали, — результат можно сохранить в переменную или использовать дальше.'
+      ],
+      examples: [
+        { title: 'Функция с параметром', code: 'def greet(name):\n    print("Привет,", name)\n\ngreet("Аня")\ngreet("Макс")' },
+        { title: 'Функция с return', code: 'def add(a, b):\n    return a + b\n\nresult = add(4, 5)\nprint(result)\nprint(add(10, 20) * 2)' }
+      ],
+      tasks: [
+        {
+          id: 't1', type: 'choice',
+          question: 'Чем <span class="ic">return</span> отличается от <span class="ic">print()</span> внутри функции?',
+          options: [
+            'Ничем, они делают одно и то же',
+            'return выводит текст красным цветом',
+            'return отдаёт значение туда, где функцию вызвали, а print() только показывает его на экране',
+            'print() завершает функцию, а return — нет'
+          ],
+          answer: 2,
+          explain: 'return передаёт результат наружу — его можно сохранить в переменную. print() лишь выводит значение, а вернуть его не может. Ещё return сразу завершает работу функции.'
+        },
+        {
+          id: 't2', type: 'code',
+          question: 'Напишите функцию <span class="ic">square(x)</span>, которая <b>возвращает</b> квадрат числа. Проверка сама вызовет <span class="ic">print(square(7))</span> и <span class="ic">print(square(-3))</span>.',
+          starter: '# Определите функцию square\n',
+          appendCode: '\nprint(square(7))\nprint(square(-3))',
+          expectedOutput: '49\n9',
+          hint: 'def square(x):\n    return x * x'
+        },
+        {
+          id: 't3', type: 'code',
+          question: 'Напишите функцию <span class="ic">is_even(n)</span>, которая возвращает <span class="ic">True</span>, если число чётное, и <span class="ic">False</span> — если нечётное. Проверка выведет результаты для 4 и 7.',
+          starter: '# Остаток от деления считает оператор %\n# Например, 10 % 3 даёт 1\n',
+          appendCode: '\nprint(is_even(4))\nprint(is_even(7))',
+          expectedOutput: 'True\nFalse',
+          hint: 'Число чётное, если остаток от деления на 2 равен нулю:\ndef is_even(n):\n    return n % 2 == 0'
+        }
+      ]
+    }
+  ];
+
+  /* ==============================================================
+     5. КОНФИГ ТЕМ: цвета карточек уровней (полные имена классов)
+     ============================================================== */
+  const THEMES = {
+    mint:     { soft: 'bg-mint-100',     box: 'bg-mint-50',     border: 'border-mint-200',     text: 'text-mint-700',     btn: 'bg-mint-600 hover:bg-mint-700',         bar: 'bg-mint-400' },
+    lavender: { soft: 'bg-lavender-100', box: 'bg-lavender-50', border: 'border-lavender-200', text: 'text-lavender-700', btn: 'bg-lavender-600 hover:bg-lavender-700', bar: 'bg-lavender-400' },
+    peach:    { soft: 'bg-peach-100',    box: 'bg-peach-50',    border: 'border-peach-200',    text: 'text-peach-700',    btn: 'bg-peach-600 hover:bg-peach-700',       bar: 'bg-peach-400' },
+    sky:      { soft: 'bg-sky-100',      box: 'bg-sky-50',      border: 'border-sky-200',      text: 'text-sky-700',      btn: 'bg-sky-600 hover:bg-sky-700',           bar: 'bg-sky-400' },
+    butter:   { soft: 'bg-butter-100',   box: 'bg-butter-50',   border: 'border-butter-200',   text: 'text-butter-700',   btn: 'bg-butter-600 hover:bg-butter-700',     bar: 'bg-butter-400' }
+  };
+
+  /* ==============================================================
+     6. ЛОГИКА: прогресс (localStorage)
+     --------------------------------------------------------------
+     Формат: { done: [1, 2], tasks: { "1": ["t1","t2"] } }
+     ============================================================== */
+  const STORAGE_KEY = 'pythonarium_progress_v1';
+  let progress = loadProgress();
+  let currentLevel = null;
+
+  function loadProgress() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (raw && Array.isArray(raw.done)) return { done: raw.done, tasks: raw.tasks || {} };
+    } catch (e) { /* localStorage недоступен или данные повреждены */ }
+    return { done: [], tasks: {} };
+  }
+  function saveProgress() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch (e) {}
+  }
+
+  const levelIndex = (id) => levels.findIndex(l => l.id === id);
+  const isDone = (id) => progress.done.includes(id);
+  // Уровень N+1 открыт только если пройден уровень N
+  function isUnlocked(id) {
+    const i = levelIndex(id);
+    return i === 0 || isDone(levels[i - 1].id);
+  }
+  const levelStatus = (id) => isDone(id) ? 'done' : (isUnlocked(id) ? 'open' : 'locked');
+  const doneTasks = (lvl) => progress.tasks[lvl.id] || [];
+  const isTaskDone = (lvl, task) => doneTasks(lvl).includes(task.id);
+
+  // Засчитываем задание; если все выполнены — засчитываем уровень
+  function completeTask(lvl, task) {
+    if (!isTaskDone(lvl, task)) {
+      progress.tasks[lvl.id] = [...doneTasks(lvl), task.id];
+      saveProgress();
+    }
+    updateLevelProgressUI(lvl);
+    const allDone = lvl.tasks.every(t => isTaskDone(lvl, t));
+    if (allDone && !isDone(lvl.id)) {
+      progress.done.push(lvl.id);
+      saveProgress();
+      updateHeaderProgress();
+      updateLevelFooter(lvl);
+      setTimeout(() => showSuccess(lvl), 900);
+    }
+  }
+
+  /* ==============================================================
+     7. ЛОГИКА: Pyodide (запуск Python в браузере)
+     ============================================================== */
+  const py = { instance: null, promise: null, error: null };
+
+  function setPyStatus(state) {
+    const el = document.getElementById('py-status');
+    const base = 'flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full ';
+    if (state === 'ready') {
+      el.className = base + 'bg-mint-100 text-mint-700';
+      el.innerHTML = '<span>●</span><span>Python готов</span>';
+    } else if (state === 'error') {
+      el.className = base + 'bg-blush-100 text-blush-700';
+      el.innerHTML = '<span>⚠</span><span>Python не загрузился</span>';
+    } else {
+      el.className = base + 'bg-butter-100 text-butter-700';
+      el.innerHTML = '<span class="spinner"></span><span>Python загружается…</span>';
+    }
+  }
+
+  // Запускаем загрузку сразу при открытии страницы
+  function initPyodide() {
+    py.promise = (async () => {
+      if (typeof loadPyodide === 'undefined') throw new Error('Не удалось загрузить Pyodide. Проверьте подключение к интернету.');
+      const p = await loadPyodide();
+      py.instance = p;
+      setPyStatus('ready');
+      return p;
+    })();
+    py.promise.catch((e) => { py.error = e; setPyStatus('error'); });
+  }
+
+  // Оставляем в трейсбэке только суть ошибки
+  function cleanError(msg) {
+    const lines = String(msg).trim().split('\n');
+    let idx = -1;
+    lines.forEach((l, i) => { if (l.includes('File "<exec>"')) idx = i; });
+    return (idx >= 0 ? lines.slice(idx) : lines.slice(-2)).join('\n');
+  }
+
+  // Выполняет код в чистом пространстве имён и перехватывает stdout
+  async function runPython(code) {
+    const p = await py.promise;
+    const out = [];
+    p.setStdout({ batched: (s) => out.push(s) });
+    p.setStderr({ batched: () => {} });
+    const ns = p.globals.get('dict')();
+    try {
+      await p.runPythonAsync(code, { globals: ns });
+      return { ok: true, output: out.join('\n') };
+    } catch (e) {
+      return { ok: false, output: out.join('\n'), error: cleanError(e.message) };
+    } finally {
+      ns.destroy();
+    }
+  }
+
+  /* ==============================================================
+     8. РЕНДЕР: вспомогательные функции
+     ============================================================== */
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const norm = (s) => String(s).replace(/\r\n/g, '\n').trim();
+
+  function showScreen(name) {
+    $('screen-home').classList.toggle('hidden', name !== 'home');
+    $('screen-level').classList.toggle('hidden', name !== 'level');
+    const el = $(name === 'home' ? 'screen-home' : 'screen-level');
+    el.classList.remove('screen-enter'); void el.offsetWidth; el.classList.add('screen-enter');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.add('hidden'), 2600);
+  }
+
+  function highlight(root) {
+    if (!window.Prism) return;
+    root.querySelectorAll('code.language-python').forEach(el => Prism.highlightElement(el));
+  }
+
+  function codeBlock(code) {
+    return `<pre class="language-python bg-cream rounded-2xl p-4 overflow-x-auto"><code class="language-python">${esc(code)}</code></pre>`;
+  }
+
+  /* ---------- Шапка и главная ---------- */
+  function updateHeaderProgress() {
+    const total = levels.length, n = progress.done.length;
+    $('header-progress').classList.remove('hidden');
+    $('header-progress').innerHTML = `
+      <span>${n} / ${total}</span>
+      <span class="w-24 h-2 rounded-full bg-cream-200 overflow-hidden"><span class="block h-full rounded-full bg-mint-400 transition-all duration-500" style="width:${(n / total) * 100}%"></span></span>`;
+    $('hero-progress').textContent = n === 0 ? 'Это займёт около 30 минут' : `Пройдено уровней: ${n} из ${total}`;
+  }
+
+  const STATUS_BADGE = {
+    locked: '<span class="text-xs font-bold px-3 py-1 rounded-full bg-cream-200 text-ink-soft">🔒 Заблокирован</span>',
+    open:   '<span class="text-xs font-bold px-3 py-1 rounded-full bg-butter-100 text-butter-700">✨ Доступен</span>',
+    done:   '<span class="text-xs font-bold px-3 py-1 rounded-full bg-mint-100 text-mint-700">✅ Пройден</span>'
+  };
+
+  function renderHome() {
+    updateHeaderProgress();
+    $('levels-grid').innerHTML = levels.map((lvl, i) => {
+      const st = levelStatus(lvl.id), th = THEMES[lvl.theme];
+      const locked = st === 'locked';
+      const solved = doneTasks(lvl).length;
+      return `
+      <button data-level="${lvl.id}" class="group text-left bg-white rounded-3xl p-6 border border-cream-200 shadow-soft transition-all duration-300 ${locked ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-lift hover:-translate-y-1'}">
+        <div class="flex items-start justify-between gap-3">
+          <div class="w-16 h-16 rounded-2xl ${th.soft} grid place-items-center text-3xl ${locked ? 'grayscale' : 'group-hover:scale-110'} transition-transform">${locked ? '🔒' : lvl.emoji}</div>
+          ${STATUS_BADGE[st]}
+        </div>
+        <div class="mt-4 text-xs font-bold uppercase tracking-wide ${th.text}">Уровень ${i + 1}</div>
+        <h3 class="mt-1 text-xl font-extrabold">${lvl.title}</h3>
+        <p class="mt-2 text-ink-soft text-sm leading-relaxed">${lvl.description}</p>
+        <div class="mt-4 flex items-center gap-3 text-xs font-semibold text-ink-mute">
+          <span class="flex-1 h-2 rounded-full bg-cream-100 overflow-hidden"><span class="block h-full ${th.bar} rounded-full" style="width:${(solved / lvl.tasks.length) * 100}%"></span></span>
+          <span>${solved}/${lvl.tasks.length} заданий</span>
+        </div>
+      </button>`;
+    }).join('');
+  }
+
+  /* ---------- Экран уровня ---------- */
+  function renderLevel(lvl) {
+    const th = THEMES[lvl.theme];
+    const i = levelIndex(lvl.id);
+
+    const theoryHtml = lvl.theory.map(p => `<p class="text-ink-soft leading-relaxed">${p}</p>`).join('');
+    const examplesHtml = lvl.examples.map((ex, k) => `
+      <div class="rounded-2xl border ${th.border} ${th.box} p-4" data-example="${k}">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div class="font-bold text-sm">${ex.title}</div>
+          <button data-action="run-example" data-k="${k}" class="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-white ${th.text} hover:shadow-soft transition">▶ Запустить</button>
+        </div>
+        ${codeBlock(ex.code)}
+        <div class="ex-out hidden mt-3 rounded-2xl bg-white px-4 py-3 font-mono text-sm whitespace-pre-wrap"></div>
+      </div>`).join('');
+
+    const tasksHtml = lvl.tasks.map((t, k) => renderTask(lvl, t, k)).join('');
+
+    $('level-root').innerHTML = `
+      <button data-action="home" class="mt-6 text-sm font-bold text-ink-soft hover:text-ink transition">← Все уровни</button>
+
+      <section class="mt-4 rounded-3xl ${th.soft} p-7 sm:p-9 shadow-soft">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 rounded-2xl bg-white/70 grid place-items-center text-4xl">${lvl.emoji}</div>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wide ${th.text}">Уровень ${i + 1} из ${levels.length}</div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold">${lvl.title}</h1>
+          </div>
+        </div>
+        <div class="mt-6 flex items-center gap-3 text-sm font-bold ${th.text}">
+          <span class="flex-1 h-3 rounded-full bg-white/70 overflow-hidden"><span id="lvl-bar" class="block h-full rounded-full ${th.bar} transition-all duration-500" style="width:0%"></span></span>
+          <span id="lvl-count"></span>
+        </div>
+      </section>
+
+      <section class="mt-8 bg-white rounded-3xl border border-cream-200 shadow-soft p-6 sm:p-8">
+        <h2 class="text-xl font-extrabold flex items-center gap-2">📖 Теория</h2>
+        <div class="mt-4 space-y-4">${theoryHtml}</div>
+        <div class="mt-6 space-y-4">${examplesHtml}</div>
+      </section>
+
+      <section class="mt-8">
+        <h2 class="text-xl font-extrabold flex items-center gap-2">✏️ Задания</h2>
+        <div class="mt-4 space-y-5">${tasksHtml}</div>
+      </section>
+
+      <div id="level-footer" class="mt-10"></div>`;
+
+    highlight($('level-root'));
+    updateLevelProgressUI(lvl);
+    updateLevelFooter(lvl);
+  }
+
+  function renderTask(lvl, task, k) {
+    const done = isTaskDone(lvl, task);
+    const badge = `<span class="task-badge text-xs font-bold px-3 py-1 rounded-full ${done ? 'bg-mint-100 text-mint-700' : 'bg-cream-100 text-ink-mute'}">${done ? '✓ Выполнено' : 'Не выполнено'}</span>`;
+    const head = `
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <span class="shrink-0 w-8 h-8 rounded-xl bg-lavender-100 text-lavender-700 grid place-items-center font-extrabold text-sm">${k + 1}</span>
+          <div class="pt-1 leading-relaxed">${task.question}</div>
+        </div>
+        ${badge}
+      </div>`;
+
+    let body = '';
+    if (task.type === 'choice') {
+      const extra = task.code ? `<div class="mt-4">${codeBlock(task.code)}</div>` : '';
+      const opts = task.options.map((o, idx) => {
+        const cls = done && idx === task.answer ? 'opt-correct' : '';
+        return `<button data-action="choice" data-idx="${idx}" ${done ? 'disabled' : ''} class="${cls} w-full text-left px-4 py-3 rounded-2xl border-2 border-cream-200 bg-white ${done ? '' : 'hover:border-lavender-300 hover:bg-lavender-50'} transition font-semibold text-sm">${esc(o)}</button>`;
+      }).join('');
+      body = `${extra}
+        <div class="mt-4 grid gap-2.5">${opts}</div>
+        <div class="feedback mt-4 ${done ? '' : 'hidden'} rounded-2xl px-4 py-3 text-sm leading-relaxed ${done ? 'bg-mint-50 text-mint-700' : ''}">${done ? '<b>Верно!</b> ' + task.explain : ''}</div>`;
+    } else {
+      const rows = Math.max(5, task.starter.split('\n').length + 1);
+      body = `
+        <textarea spellcheck="false" rows="${rows}" class="code-area mt-4 w-full font-mono text-sm leading-relaxed bg-cream rounded-2xl border-2 border-cream-200 p-4 transition resize-y" placeholder="Пишите код здесь…">${esc(task.starter)}</textarea>
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <button data-action="check" class="check-btn px-5 py-2.5 rounded-2xl bg-lavender-600 hover:bg-lavender-700 text-white font-bold text-sm shadow-soft hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0">Проверить</button>
+          <button data-action="reset-code" class="px-4 py-2.5 rounded-2xl bg-cream-100 hover:bg-cream-200 font-bold text-sm transition">Сбросить</button>
+          <button data-action="hint" class="px-4 py-2.5 rounded-2xl hover:bg-butter-100 text-butter-700 font-bold text-sm transition">💡 Подсказка</button>
+          <span class="text-xs text-ink-mute hidden sm:inline">Ctrl + Enter — запуск</span>
+        </div>
+        <div class="hint-box hidden mt-3 rounded-2xl bg-butter-50 border border-butter-200 text-butter-700 px-4 py-3 text-sm whitespace-pre-wrap font-mono">${esc(task.hint || '')}</div>
+        <div class="out-wrap hidden mt-4">
+          <div class="text-xs font-bold uppercase tracking-wide text-ink-mute mb-1.5">Вывод программы</div>
+          <pre class="out rounded-2xl bg-white border border-cream-200 px-4 py-3 font-mono text-sm whitespace-pre-wrap min-h-[3rem]"></pre>
+        </div>
+        <div class="feedback mt-3 ${done ? '' : 'hidden'} rounded-2xl px-4 py-3 text-sm leading-relaxed ${done ? 'bg-mint-50 text-mint-700' : ''}">${done ? '<b>Задание засчитано!</b> Можно редактировать код и пробовать снова.' : ''}</div>`;
+    }
+
+    return `<article data-task="${task.id}" class="bg-white rounded-3xl border border-cream-200 shadow-soft p-6 sm:p-7">${head}${body}</article>`;
+  }
+
+  function updateLevelProgressUI(lvl) {
+    const n = doneTasks(lvl).length, total = lvl.tasks.length;
+    const bar = $('lvl-bar'), cnt = $('lvl-count');
+    if (bar) bar.style.width = (n / total) * 100 + '%';
+    if (cnt) cnt.textContent = `${n} / ${total}`;
+    // обновляем бейджи заданий
+    lvl.tasks.forEach(t => {
+      const card = document.querySelector(`[data-task="${t.id}"]`);
+      if (!card) return;
+      const b = card.querySelector('.task-badge');
+      const d = isTaskDone(lvl, t);
+      b.className = 'task-badge text-xs font-bold px-3 py-1 rounded-full ' + (d ? 'bg-mint-100 text-mint-700' : 'bg-cream-100 text-ink-mute');
+      b.textContent = d ? '✓ Выполнено' : 'Не выполнено';
+    });
+  }
+
+  function updateLevelFooter(lvl) {
+    const el = $('level-footer');
+    if (!el) return;
+    const i = levelIndex(lvl.id);
+    const next = levels[i + 1];
+    if (!isDone(lvl.id)) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div class="pop rounded-3xl bg-mint-100 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="font-bold text-mint-700">🎉 Уровень пройден! ${next ? 'Следующий уже открыт.' : 'Курс завершён!'}</div>
+        <div class="flex gap-3">
+          ${next ? '<button data-action="next" class="px-5 py-2.5 rounded-2xl bg-mint-600 hover:bg-mint-700 text-white font-bold text-sm transition">Следующий уровень →</button>' : ''}
+          <button data-action="home" class="px-5 py-2.5 rounded-2xl bg-white hover:shadow-soft font-bold text-sm transition">На главную</button>
+        </div>
+      </div>`;
+  }
+
+  /* ==============================================================
+     9. ЛОГИКА: действия пользователя (открытие уровня, задания)
+     ============================================================== */
+  function openLevel(id) {
+    if (!isUnlocked(id)) {
+      const prev = levels[levelIndex(id) - 1];
+      toast(`🔒 Сначала пройдите уровень «${prev.title}»`);
+      return;
+    }
+    currentLevel = levels[levelIndex(id)];
+    renderLevel(currentLevel);
+    showScreen('level');
+  }
+
+  function goHome() {
+    currentLevel = null;
+    renderHome();
+    showScreen('home');
+  }
+
+  function setFeedback(card, ok, html) {
+    const fb = card.querySelector('.feedback');
+    fb.classList.remove('hidden');
+    fb.className = 'feedback pop mt-3 rounded-2xl px-4 py-3 text-sm leading-relaxed ' + (ok ? 'bg-mint-50 text-mint-700 border border-mint-200' : 'bg-blush-50 text-blush-700 border border-blush-200');
+    fb.innerHTML = html;
+  }
+
+  // Вариант ответа (choice)
+  function handleChoice(btn) {
+    const card = btn.closest('[data-task]');
+    const task = currentLevel.tasks.find(t => t.id === card.dataset.task);
+    if (isTaskDone(currentLevel, task)) return;
+    const idx = Number(btn.dataset.idx);
+
+    if (idx === task.answer) {
+      btn.classList.add('opt-correct');
+      card.querySelectorAll('[data-action="choice"]').forEach(b => { b.disabled = true; b.classList.remove('hover:border-lavender-300', 'hover:bg-lavender-50'); });
+      setFeedback(card, true, '<b>Верно! 🎉</b> ' + task.explain);
+      completeTask(currentLevel, task);
+    } else {
+      btn.classList.add('opt-wrong', 'shake');
+      btn.disabled = true;
+      setFeedback(card, false, '<b>Не совсем.</b> ' + task.explain + '<br><span class="opacity-80">Попробуйте другой вариант.</span>');
+    }
+  }
+
+  // Проверка кода (code)
+  async function handleCheck(btn) {
+    const card = btn.closest('[data-task]');
+    const task = currentLevel.tasks.find(t => t.id === card.dataset.task);
+    const code = card.querySelector('textarea').value;
+    const outWrap = card.querySelector('.out-wrap');
+    const outEl = card.querySelector('.out');
+    const original = btn.textContent;
+
+    btn.disabled = true;
+    outWrap.classList.remove('hidden');
+
+    // Если Pyodide ещё грузится — показываем индикатор и ждём
+    if (!py.instance && !py.error) {
+      btn.innerHTML = '<span class="spinner mr-2"></span>Загружаю Python…';
+      outEl.textContent = 'Python ещё загружается, это займёт несколько секунд…';
+    } else {
+      btn.innerHTML = '<span class="spinner mr-2"></span>Выполняю…';
+    }
+
+    try {
+      const res = await runPython(code + (task.appendCode || ''));
+      const got = norm(res.output);
+      outEl.textContent = res.output || (res.ok ? '(программа ничего не вывела)' : '');
+
+      if (!res.ok) {
+        outEl.innerHTML = esc(res.output ? res.output + '\n' : '') + `<span class="text-blush-700">${esc(res.error)}</span>`;
+        setFeedback(card, false, '<b>В коде ошибка.</b> Прочитайте сообщение выше — обычно там указана строка и причина.');
+      } else if (got === norm(task.expectedOutput)) {
+        setFeedback(card, true, '<b>Отлично! 🎉</b> Вывод совпал с ожидаемым — задание засчитано.');
+        completeTask(currentLevel, task);
+      } else {
+        setFeedback(card, false, `<b>Пока не то.</b> Вывод отличается от ожидаемого.<div class="mt-2 font-mono text-xs whitespace-pre-wrap">Ожидалось:<br>${esc(norm(task.expectedOutput))}</div>`);
+      }
+    } catch (e) {
+      outEl.textContent = '';
+      setFeedback(card, false, '<b>Python недоступен.</b> ' + esc(e.message || 'Ошибка загрузки') + ' Обновите страницу при работающем интернете.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+
+  // Запуск примера из теории
+  async function handleRunExample(btn) {
+    const box = btn.closest('[data-example]');
+    const ex = currentLevel.examples[Number(btn.dataset.k)];
+    const out = box.querySelector('.ex-out');
+    const label = btn.textContent;
+    btn.disabled = true;
+    out.classList.remove('hidden');
+    out.textContent = py.instance ? 'Выполняю…' : 'Python загружается…';
+    try {
+      const res = await runPython(ex.code);
+      out.innerHTML = esc(res.output || '') + (res.ok ? '' : `<span class="text-blush-700">${esc(res.error)}</span>`);
+      if (res.ok && !res.output) out.textContent = '(нет вывода)';
+    } catch (e) {
+      out.textContent = 'Python недоступен: ' + e.message;
+    }
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+
+  /* ---------- Модалка успеха и конфетти ---------- */
+  function fireConfetti() {
+    if (typeof confetti !== 'function') return;
+    const colors = ['#94D8B6', '#C2B2EE', '#FFB992', '#FFD763', '#93CBF0'];
+    confetti({ particleCount: 110, spread: 80, origin: { y: 0.6 }, colors });
+    setTimeout(() => confetti({ particleCount: 70, angle: 60, spread: 65, origin: { x: 0, y: 0.7 }, colors }), 250);
+    setTimeout(() => confetti({ particleCount: 70, angle: 120, spread: 65, origin: { x: 1, y: 0.7 }, colors }), 400);
+  }
+
+  function showSuccess(lvl) {
+    const i = levelIndex(lvl.id);
+    const next = levels[i + 1];
+    const isLast = !next;
+    $('modal-emoji').textContent = isLast ? '🏆' : '🎉';
+    $('modal-title').textContent = isLast ? 'Вы прошли весь курс!' : `Уровень «${lvl.title}» пройден!`;
+    $('modal-text').textContent = isLast
+      ? 'Невероятно! Вы освоили основы Python: вывод, переменные, условия, циклы и функции. Теперь можно смело писать свои программы.'
+      : `Отличная работа! Все задания выполнены. Открыт новый уровень: «${next.title}».`;
+    $('modal-next').classList.toggle('hidden', isLast);
+    $('modal-next').dataset.next = next ? next.id : '';
+    $('modal').classList.remove('hidden');
+    fireConfetti();
+  }
+  function closeModal() { $('modal').classList.add('hidden'); }
+
+  /* ==============================================================
+     10. СОБЫТИЯ И ЗАПУСК
+     ============================================================== */
+  // Делегирование кликов внутри экрана уровня
+  $('level-root').addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const card = el.closest('[data-task]');
+    switch (el.dataset.action) {
+      case 'home': goHome(); break;
+      case 'next': { const n = levels[levelIndex(currentLevel.id) + 1]; if (n) openLevel(n.id); break; }
+      case 'choice': handleChoice(el); break;
+      case 'check': handleCheck(el); break;
+      case 'run-example': handleRunExample(el); break;
+      case 'hint': card.querySelector('.hint-box').classList.toggle('hidden'); break;
+      case 'reset-code': {
+        const task = currentLevel.tasks.find(t => t.id === card.dataset.task);
+        card.querySelector('textarea').value = task.starter;
+        break;
+      }
+    }
+  });
+
+  // Tab в textarea вставляет 4 пробела; Ctrl+Enter запускает проверку
+  $('level-root').addEventListener('keydown', (e) => {
+    if (e.target.tagName !== 'TEXTAREA') return;
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const ta = e.target, s = ta.selectionStart;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(ta.selectionEnd);
+      ta.selectionStart = ta.selectionEnd = s + 4;
+    }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      const b = e.target.closest('[data-task]').querySelector('.check-btn');
+      if (!b.disabled) b.click();
+    }
+  });
+
+  // Карточки уровней
+  $('levels-grid').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-level]');
+    if (card) openLevel(Number(card.dataset.level));
+  });
+
+  // Кнопка «Начать» — первый непройденный открытый уровень
+  $('btn-start').addEventListener('click', () => {
+    const target = levels.find(l => isUnlocked(l.id) && !isDone(l.id));
+    if (target) openLevel(target.id);
+    else $('levels-section').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  $('logo').addEventListener('click', goHome);
+
+  $('btn-reset').addEventListener('click', () => {
+    if (confirm('Сбросить весь прогресс? Это действие нельзя отменить.')) {
+      progress = { done: [], tasks: {} };
+      saveProgress();
+      renderHome();
+      toast('Прогресс сброшен');
+    }
+  });
+
+  // Модалка
+  $('modal-next').addEventListener('click', () => {
+    const id = Number($('modal-next').dataset.next);
+    closeModal();
+    if (id) openLevel(id);
+  });
+  $('modal-home').addEventListener('click', () => { closeModal(); goHome(); });
+  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  // Старт приложения
+  renderHome();
+  initPyodide();
+  </script>
+</body>
+</html>
